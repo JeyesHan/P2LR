@@ -38,24 +38,11 @@ MMT/examples/data
     └── MSMT17_V1
 ```
 
-## Prepare Pre-trained Models
-When *training with the backbone of [IBN-ResNet-50](https://arxiv.org/abs/1807.09441)*, you need to download the [ImageNet](http://www.image-net.org/) pre-trained model from this [link](https://drive.google.com/drive/folders/1thS2B8UOSBi_cJX6zRy6YYRwz_nVFI_S) and save it under the path of `logs/pretrained/`.
-```shell
-mkdir logs && cd logs
-mkdir pretrained
-```
-The file tree should be
-```
-MMT/logs
-└── pretrained
-    └── resnet50_ibn_a.pth.tar
-```
-
 ## Example #1:
 Transferring from [DukeMTMC-reID](https://arxiv.org/abs/1609.01775) to [Market-1501](https://www.cv-foundation.org/openaccess/content_iccv_2015/papers/Zheng_Scalable_Person_Re-Identification_ICCV_2015_paper.pdf) on the backbone of [ResNet-50](https://arxiv.org/abs/1512.03385), *i.e. Duke-to-Market (ResNet-50)*.
 
 ### Train
-We utilize 4 GTX-1080TI GPUs for training.
+We utilize 4 TITAN XP GPUs for training.
 
 **An explanation about the number of GPUs and the size of mini-batches:**
 + We adopted 4 GPUs with a batch size of 64, since we found 16 images out of 4 identities in a mini-batch benefits the learning of BN layers, achieving optimal performance. This setting may affect IBN-ResNet-50 in a larger extent.
@@ -123,25 +110,6 @@ sh scripts/train_mmt_dbscan.sh dukemtmc market1501 resnet50
 sh scripts/test.sh msmt17 resnet50 logs/dukemtmcTOmsmt17/resnet50-MMT-500/model_best.pth.tar
 sh scripts/test.sh msmt17 resnet50 logs/dukemtmcTOmsmt17/resnet50-MMT-1000/model_best.pth.tar
 sh scripts/test.sh msmt17 resnet50 logs/dukemtmcTOmsmt17/resnet50-MMT-DBSCAN/model_best.pth.tar
-```
-
-## General Clustering-based Baseline Training
-<div align=center><img width="400" height="163" src="figs/baseline.png"/></div>
-
-**Note that the baseline mentioned in our paper is slightly different from the general clustering-based baseline:**
-+ For fair comparison in the ablation study, the baseline in our paper utilized the same dual-model framework as our MMT but using only hard pseudo labels (no soft labels and no mean-teachers), i.e. setting `--soft-ce-weight 0 --soft-tri-weight 0 --alpha 0` in the training scripts.
-+ The general clustering-based baseline is illustrated as above, which contains only one model. The model is training with a cross-entropy loss and a triplet loss, supervised by hard pseudo labels.
-+ Although the baseline in our paper adopted dual models that are *independently* trained with hard losses, the features extracted for clustering are averaged from dual models. It is **the only difference** from the general clustering-based baseline.
-
-Here, we supported training with the general clustering-based baseline for further academic usage.
-For example, Duke-to-Market with ResNet-50
-```shell
-# for K-Means
-sh scripts/train_baseline_kmeans.sh dukemtmc market1501 resnet50 500
-sh scripts/train_baseline_kmeans.sh dukemtmc market1501 resnet50 700
-sh scripts/train_baseline_kmeans.sh dukemtmc market1501 resnet50 900
-# for DBSCAN
-sh scripts/train_baseline_dbscan.sh dukemtmc market1501 resnet50 
 ```
 
 
