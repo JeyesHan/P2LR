@@ -1,28 +1,23 @@
 ![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)
 ![PyTorch 1.1](https://img.shields.io/badge/pytorch-1.1-yellow.svg)
 
-# Mutual Mean-Teaching (MMT)
+# P2LR (MMT)
 
-The *official* implementation for the [Mutual Mean-Teaching: Pseudo Label Refinery for Unsupervised Domain Adaptation on Person Re-identification](https://openreview.net/forum?id=rJlnOhVYPS) which is accepted by [ICLR-2020](https://iclr.cc).
+The *official* implementation for the [Delving into Probabilistic Uncertainty for Unsupervised Domain Adaptive Person Re-Identification](https://openreview.net/forum?id=rJlnOhVYPS) which is accepted by [AAAI-2022](https://aaai.org/Conferences/AAAI-22/).
+
 
 ![framework](figs/framework.png)
 
 ## What's New
-#### [Mar 27th, 2020]
-+ We wrote a Chinese blog about this paper at [[Zhihu]](https://zhuanlan.zhihu.com/p/116074945).
 
-#### [Mar 20th, 2020]
-+ We supported **DBSCAN-based MMT** which could achieve better performance. *Note that* we effectively accelerated the Jaccard distance computing process for DBSCAN (around 200s for CPU and 60s for GPU, compared to around 10min in other repos). 
-+ We added the **general clustering-based baseline** training for UDA re-ID, i.e. single model training with only hard pseudo labels. 
-+ We slightly modified the setting of training iterations `--iters` from  `800` to `400` in the training scripts, achieving similar performance with less time cost.
-+ We discovered **a minor hint**, changing the setting of `--dropout` from `0` to `0.5` will achieve supervising improvements in MMT. Intuitively, the dual models are more de-coupled with independent dropout functions.
-+ A reminder here, changing the hyper-parameter `--soft-tri-weight 0.8` to `--soft-tri-weight 1.0` may achieve better performance in some cases. Please refer to ablation study results in Table 2 in our paper.
+#### [Dec 21st, 2021]
++ We clean up our code and submit the first commit to github.
 
 ## Installation
 
 ```shell
-git clone https://github.com/yxgeee/MMT.git
-cd MMT
+git clone git@github.com:JeyesHan/P2LR.git
+cd P2LR
 python setup.py install
 ```
 
@@ -173,4 +168,3 @@ If you find this code useful for your research, please cite our paper
   url={https://openreview.net/forum?id=rJlnOhVYPS}
 }
 ```
-# P2LR
