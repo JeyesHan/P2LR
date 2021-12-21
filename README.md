@@ -6,7 +6,7 @@
 The *official* implementation for the [Delving into Probabilistic Uncertainty for Unsupervised Domain Adaptive Person Re-Identification](https://openreview.net/forum?id=rJlnOhVYPS) which is accepted by [AAAI-2022](https://aaai.org/Conferences/AAAI-22/).
 
 
-![framework](figs/framework.png)
+![framework](figs/framework.PNG)
 
 ## What's New
 
@@ -115,7 +115,7 @@ sh scripts/test.sh msmt17 resnet50 logs/dukemtmcTOmsmt17/resnet50-MMT-DBSCAN/mod
 
 ## Download Trained Models
 *Source-domain pre-trained models and all our MMT models in the paper can be downloaded from the [link](https://drive.google.com/open?id=1WC4JgbkaAr40uEew_JEqjUxgKIiIQx-W).*
-![results](figs/results.png)
+![results](figs/results.PNG)
 
 ## TODO
 - [x] Support DBSCAN-based training
