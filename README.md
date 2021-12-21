@@ -1,7 +1,7 @@
 ![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)
 ![PyTorch 1.1](https://img.shields.io/badge/pytorch-1.1-yellow.svg)
 
-# P2LR (MMT)
+# Probabilistic uncertainty guided Progressive Label Refinery (P2LR)
 
 The *official* implementation for the [Delving into Probabilistic Uncertainty for Unsupervised Domain Adaptive Person Re-Identification](https://openreview.net/forum?id=rJlnOhVYPS) which is accepted by [AAAI-2022](https://aaai.org/Conferences/AAAI-22/).
 
