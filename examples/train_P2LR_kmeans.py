@@ -29,9 +29,7 @@ from mmt.utils.serialization import load_checkpoint, save_checkpoint, copy_state
 
 
 best_mAP = 0
-abs_linear_growth = False
-relative_distance_linear_growth = True
-relative_linear_growth = False
+
 
 def get_data(name, data_dir):
     root = osp.join(data_dir, name)
@@ -81,8 +79,28 @@ def train_kmeans(X, K, niter=20, ngpu=1, nredo=10, verbose=False):
     return centroids.reshape(K, D), Ids
             
 
+class ProbUncertain():
+    def __init__(self, alpha=20, epsilon=0.99):
+        self.alpha = alpha
+        self.epsilon = epsilon
+        self.logsoftmax = torch.nn.LogSoftmax(dim=1)
+        self.kl_loss = torch.nn.KLDivLoss(reduction='none')
+    
+    def cal_uncertainty(features, pseudo_labels, classifier):
+        features, classifier = torch.from_numpy(features), torch.from_numpy(classifier)
+        pred_probs =  self.logsoftmax(self.alpha * torch.matmul(features, classifier.t()))
+
+        pseudo_labels = torch.tensor(pseudo_labels, dtype=torch.long)
+        ideal_probs = torch.zeros(pred_probs.shape) + (1-self.epsilon) / (pred_probs.shape[1]-1)
+        ideal_probs.scatter_(1, pseudo_labels.unsqueeze(-1), value=self.epsilon)
+
+        uncertainties = self.kl_loss(pred_probs, ideal_probs).sum(1).numpy()
+        return uncertainties
+
+
+prob_uncertainty = ProbUncertain()
 def get_train_loader(dataset, height, width, batch_size, workers,
-                     num_instances, iters, centers, target_label, cf, select_percentage):
+                     num_instances, iters, centers, target_label, cf, pt):
 
     normalizer = T.Normalize(mean=[0.485, 0.456, 0.406],
                              std=[0.229, 0.224, 0.225])
@@ -95,45 +113,23 @@ def get_train_loader(dataset, height, width, batch_size, workers,
         normalizer,
         T.RandomErasing(probability=0.5, mean=[0.485, 0.456, 0.406])
     ])
-
-    if abs_linear_growth:
-        print('using abs distance linear growth')
-        confidences = dist[range(dist.shape[0]), labels]
-        select_pseudo_samples = np.argsort(confidences)[-int(select_percentage*dist.shape[0]):]
-    elif relative_distance_linear_growth:
-        print('using relative distance linear growth')
-        logsoftmax = torch.nn.LogSoftmax(dim=1)
-        kl_loss = torch.nn.KLDivLoss(reduction='none')
-        dist = np.matmul(cf, centers.T)  # cosine distance, larger means more reliable
-        labels = np.array(target_label).astype(np.long) # np.argmax(dist, axis=1)
-        max_p = 0.99 # 0.97 # 0.95 # 0.999
-        target = torch.zeros(dist.shape) + (1-max_p) / (dist.shape[1]-1)
-        target.scatter_(1, torch.from_numpy(labels).unsqueeze(-1), value=max_p)
-
-        temperature = 20 # test 0.5, 1, 5, 10, 20, 30, 40, 50, 70, 100
-        pred = logsoftmax(torch.from_numpy(dist*temperature))
-        confidences = kl_loss(pred, target).sum(1).numpy()
-
-        select_pseudo_samples = np.argsort(confidences)[:int(select_percentage * cf.shape[0])]
-
-    elif relative_linear_growth: # relative threshold linear growth
-        print('using relative criterion linear growth')
-        centers_dist = np.matmul(centers, centers.T)
-        centers_dist[range(centers_dist.shape[0]),range(centers_dist.shape[0])] = -100
-        centers_min_dist = 2 - 2 * np.max(centers_dist, 1)
-        confidences = (2 - 2 * dist[range(dist.shape[0]), labels]) / centers_min_dist[labels]
-        select_pseudo_samples = np.where(confidences <= select_percentage)[0]
-    else:
-        raise NotImplementedError
-    print('select {}/{} samples'.format(len(select_pseudo_samples), len(confidences)))
-    select_pseudo_samples_labels = labels[select_pseudo_samples]
-    train_set = [dataset.train[item] for item in select_pseudo_samples]
+    uncertainties = prob_uncertainty.cal_uncertainty(cf, target_label, centers)
+    N = len(uncertainties) 
+    beta = np.sort(uncertainties)[int(pt * N)]
+    Vindicator = [False for _ in range(N)]
+    for i in range(N):
+        if uncertainties[i] <= beta:
+            Vindicator[i] = True   
+    select_samples_labels = labels[np.where(Vindicator == True)]
+    train_set = [dataset.train[ind] for ind in np.where(Vindicator == True)]
 
     # change pseudo labels
     for i in range(len(train_set)):
         train_set[i] = list(train_set[i])
-        train_set[i][1] = int(select_pseudo_samples_labels[i])
+        train_set[i][1] = int(select_samples_labels[i])
         train_set[i] = tuple(train_set[i])
+
+    print('select {}/{} samples'.format(len(train_set), N))
 
     train_set = sorted(train_set)
     rmgs_flag = num_instances > 0
@@ -148,6 +144,7 @@ def get_train_loader(dataset, height, width, batch_size, workers,
                    shuffle=not rmgs_flag, pin_memory=True, drop_last=True), length=iters)
 
     return train_loader, select_pseudo_samples, select_pseudo_samples_labels
+
 
 def get_test_loader(dataset, height, width, batch_size, workers, testset=None):
     normalizer = T.Normalize(mean=[0.485, 0.456, 0.406],
@@ -185,15 +182,15 @@ def create_model(args):
     model_1_ema = nn.DataParallel(model_1_ema)
     model_2_ema = nn.DataParallel(model_2_ema)
 
-    # initial_weights = load_checkpoint(args.init_1)
-    # copy_state_dict(initial_weights['state_dict'], model_1)
-    # copy_state_dict(initial_weights['state_dict'], model_1_ema)
-    # model_1_ema.module.classifier.weight.data.copy_(model_1.module.classifier.weight.data)
+    initial_weights = load_checkpoint(args.init_1)
+    copy_state_dict(initial_weights['state_dict'], model_1)
+    copy_state_dict(initial_weights['state_dict'], model_1_ema)
+    model_1_ema.module.classifier.weight.data.copy_(model_1.module.classifier.weight.data)
 
-    # initial_weights = load_checkpoint(args.init_2)
-    # copy_state_dict(initial_weights['state_dict'], model_2)
-    # copy_state_dict(initial_weights['state_dict'], model_2_ema)
-    # model_2_ema.module.classifier.weight.data.copy_(model_2.module.classifier.weight.data)
+    initial_weights = load_checkpoint(args.init_2)
+    copy_state_dict(initial_weights['state_dict'], model_2)
+    copy_state_dict(initial_weights['state_dict'], model_2_ema)
+    model_2_ema.module.classifier.weight.data.copy_(model_2.module.classifier.weight.data)
 
     for param in model_1_ema.parameters():
         param.detach_()
@@ -266,22 +263,15 @@ def main_worker(args):
         target_label = km.labels_
     start_percentage = args.p
 
-    def scheduler(t, T_grow, lamda0, ord=2):
-        # return min(1.0, lamda0 + (1 - lamda0) / T_grow * t) # continuous scheduler
-        # return min(1.0, pow((1 - pow(lamda0, ord)) / T_grow * t + pow(lamda0, ord), 1/ord)) # root function
-        a = ord
-        return lamda0+1/a*math.log(1+(pow(math.e,a*(1-lamda0))-1)*t/T_grow)
+    def scheduler(t, T, p0, h=1.5):
+        return p0 + 1 / h * math.log(1 + t / T * (pow(math.e, h*(1 - p0)) - 1))
 
     for epoch in range(args.epochs):
-        if abs_linear_growth or relative_distance_linear_growth:
-            # select_percentage = start_percentage + (epoch+1) / args.epochs * (1-start_percentage)
-            select_percentage = scheduler(epoch, args.epochs-1, start_percentage, ord=1.5)
-        else:
-            select_percentage = start_percentage + (epoch + 1) / args.epochs * (1.05 - start_percentage)
-        print('Current epoch selects {:.2f} unlabeled data'.format(select_percentage))
+        pt = scheduler(epoch, args.epochs-1, start_percentage, h=1.5)
+        print('Current epoch selects {:.4f} unlabeled data'.format(select_percentage))
         train_loader_target, select_pseudo_samples, select_pseudo_samples_labels = get_train_loader(dataset_target,
                                                             args.height, args.width, args.batch_size, args.workers,
-                                                            args.num_instances, iters, centers,target_label, cf, select_percentage)
+                                                            args.num_instances, iters, centers,target_label, cf, pt)
 
         # Optimizer
         params = []
@@ -335,8 +325,6 @@ def main_worker(args):
         print('\n Clustering into {} classes \n'.format(args.num_clusters))  # num_clusters=500
         if args.multiple_kmeans:
             if args.fast_kmeans:
-                # centers, target_label = train_kmeans(cf, args.num_clusters, seed=args.seed, max_points_per_centroid=80,
-                #                                             min_points_per_centroid=3, niter=50, ngpu=1 , redo=5)
                 centers, target_label = train_kmeans(cf, args.num_clusters, niter=40, nredo=20, ngpu=1, verbose=True)
                 centers = normalize(centers, axis=1)
             else:

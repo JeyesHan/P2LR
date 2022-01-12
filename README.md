@@ -38,6 +38,22 @@ MMT/examples/data
     └── MSMT17_V1
 ```
 
+## Custom Datasets
+Change Line 24 of P2LR/datasets/custom.py to the path of your_custom_dataset. If your have multiple custom datasets, you can copy and rewrite P2LR/datasets/custom.py according to your data.
+```
+MMT/examples/data
+├── dukemtmc
+│   └── DukeMTMC-reID
+├── market1501
+│   └── Market-1501-v15.09.15
+└── custom
+    └── your_custom_dataset
+        |── trianval
+        |── query
+        └── gallery
+    
+```
+
 ## Example #1:
 Transferring from [DukeMTMC-reID](https://arxiv.org/abs/1609.01775) to [Market-1501](https://www.cv-foundation.org/openaccess/content_iccv_2015/papers/Zheng_Scalable_Person_Re-Identification_ICCV_2015_paper.pdf) on the backbone of [ResNet-50](https://arxiv.org/abs/1512.03385), *i.e. Duke-to-Market (ResNet-50)*.
 
