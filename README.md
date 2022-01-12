@@ -3,7 +3,7 @@
 
 # Probabilistic uncertainty guided Progressive Label Refinery (P2LR)
 
-The *official* implementation for the [Delving into Probabilistic Uncertainty for Unsupervised Domain Adaptive Person Re-Identification](https://openreview.net/forum?id=rJlnOhVYPS) which is accepted by [AAAI-2022](https://aaai.org/Conferences/AAAI-22/).
+The *official* implementation for the [Delving into Probabilistic Uncertainty for Unsupervised Domain Adaptive Person Re-Identification](https://arxiv.org/abs/2112.14025) which is accepted by [AAAI-2022](https://aaai.org/Conferences/AAAI-22/). Note that this repo in build upon [MMT](https://github.com/yxgeee/MMT).
 
 
 ![framework](figs/framework.PNG)
@@ -18,7 +18,7 @@ The *official* implementation for the [Delving into Probabilistic Uncertainty fo
 ```shell
 git clone git@github.com:JeyesHan/P2LR.git
 cd P2LR
-python setup.py install
+pip install -r requirements.txt
 ```
 
 ## Prepare Datasets
@@ -45,7 +45,7 @@ Transferring from [DukeMTMC-reID](https://arxiv.org/abs/1609.01775) to [Market-1
 We utilize 4 TITAN XP GPUs for training.
 
 **An explanation about the number of GPUs and the size of mini-batches:**
-+ We adopted 4 GPUs with a batch size of 64, since we found 16 images out of 4 identities in a mini-batch benefits the learning of BN layers, achieving optimal performance. This setting may affect IBN-ResNet-50 in a larger extent.
++ We adopted 4 GPUs with a batch size of 64, since we found 16 images out of 4 identities in a mini-batch benefits the learning of BN layers, achieving optimal performance.
 + It is fine to try other hyper-parameters, i.e. GPUs and batch sizes. I recommend to remain a mini-batch of 16 images for the BN layers, e.g. use a batch size of 32 for 2 GPUs training, etc.
 
 #### Stage I: Pre-training on the source domain
@@ -55,84 +55,70 @@ sh scripts/pretrain.sh dukemtmc market1501 resnet50 1
 sh scripts/pretrain.sh dukemtmc market1501 resnet50 2
 ```
 
-#### Stage II: End-to-end training with MMT-500 
+#### Stage II: End-to-end training with P2LR
 We utilized K-Means clustering algorithm in the paper.
 
 ```shell
-sh scripts/train_mmt_kmeans.sh dukemtmc market1501 resnet50 500
-```
-
-We supported DBSCAN clustering algorithm currently.
-**Note that** you could add `--rr-gpu` in the training scripts for faster clustering but requiring more GPU memory.
-
-```shell
-sh scripts/train_mmt_dbscan.sh dukemtmc market1501 resnet50
+sh scripts/train_P2LR_kmeans.sh dukemtmc market1501 resnet50 500 0.3
 ```
 
 ### Test
-We utilize 1 GTX-1080TI GPU for testing.
+We utilize 1 GPU for testing.
 Test the trained model with best performance by
 ```shell
-sh scripts/test.sh market1501 resnet50 logs/dukemtmcTOmarket1501/resnet50-MMT-500/model_best.pth.tar
+sh scripts/test.sh market1501 resnet50 logs/dukemtmcTOmarket1501/resnet-P2LR-500/model_best.pth.tar
 ```
 
 
 
 ## Other Examples:
-**Duke-to-Market (IBN-ResNet-50)**
+**Market-to-Duke (ResNet-50)**
 ```shell
 # pre-training on the source domain
-sh scripts/pretrain.sh dukemtmc market1501 resnet_ibn50a 1
-sh scripts/pretrain.sh dukemtmc market1501 resnet_ibn50a 2
-# end-to-end training with MMT-500
-sh scripts/train_mmt_kmeans.sh dukemtmc market1501 resnet_ibn50a 500
-# or MMT-700
-sh scripts/train_mmt_kmeans.sh dukemtmc market1501 resnet_ibn50a 700
-# or MMT-DBSCAN
-sh scripts/train_mmt_dbscan.sh dukemtmc market1501 resnet_ibn50a 
+sh scripts/pretrain.sh market1501 dukemtmc resnet 1
+sh scripts/pretrain.sh market1501 dukemtmc resnet 2
+# end-to-end training with P2LR
+sh scripts/train_P2LR_kmeans.sh market1501 dukemtmc resnet50 700 0.2
 # testing the best model
-sh scripts/test.sh market1501 resnet_ibn50a logs/dukemtmcTOmarket1501/resnet_ibn50a-MMT-500/model_best.pth.tar
-sh scripts/test.sh market1501 resnet_ibn50a logs/dukemtmcTOmarket1501/resnet_ibn50a-MMT-700/model_best.pth.tar
-sh scripts/test.sh market1501 resnet_ibn50a logs/dukemtmcTOmarket1501/resnet_ibn50a-MMT-DBSCAN/model_best.pth.tar
+sh scripts/test.sh dukemtmc resnet logs/market1501TOdukemtmc/resnet-P2LR-700/model_best.pth.tar
+```
+**Market-to-MSMT (ResNet-50)**
+```shell
+# pre-training on the source domain
+sh scripts/pretrain.sh market1501 msmt17 resnet 1
+sh scripts/pretrain.sh market1501 msmt17 resnet 2
+# end-to-end training with P2LR
+sh scripts/train_P2LR_kmeans.sh market1501 msmt17 resnet50 1500 0.3
+# testing the best model
+sh scripts/test.sh msmt17 resnet logs/market1501TOmsmt17/resnet-P2LR-1500/model_best.pth.tar
 ```
 **Duke-to-MSMT (ResNet-50)**
 ```shell
 # pre-training on the source domain
-sh scripts/pretrain.sh dukemtmc msmt17 resnet50 1
-sh scripts/pretrain.sh dukemtmc msmt17 resnet50 2
-# end-to-end training with MMT-500
-sh scripts/train_mmt_kmeans.sh dukemtmc msmt17 resnet50 500
-# or MMT-1000
-sh scripts/train_mmt_kmeans.sh dukemtmc msmt17 resnet50 1000
-# or MMT-DBSCAN
-sh scripts/train_mmt_dbscan.sh dukemtmc market1501 resnet50 
+sh scripts/pretrain.sh dukemtmc msmt17 resnet 1
+sh scripts/pretrain.sh dukemtmc msmt17 resnet 2
+# end-to-end training with P2LR
+sh scripts/train_P2LR_kmeans.sh dukemtmc msmt17 resnet50 1500 0.3
 # testing the best model
-sh scripts/test.sh msmt17 resnet50 logs/dukemtmcTOmsmt17/resnet50-MMT-500/model_best.pth.tar
-sh scripts/test.sh msmt17 resnet50 logs/dukemtmcTOmsmt17/resnet50-MMT-1000/model_best.pth.tar
-sh scripts/test.sh msmt17 resnet50 logs/dukemtmcTOmsmt17/resnet50-MMT-DBSCAN/model_best.pth.tar
+sh scripts/test.sh msmt17 resnet logs/dukemtmcTOmsmt17/resnet-P2LR-1500/model_best.pth.tar
 ```
 
 
-## Download Trained Models
-*Source-domain pre-trained models and all our MMT models in the paper can be downloaded from the [link](https://drive.google.com/open?id=1WC4JgbkaAr40uEew_JEqjUxgKIiIQx-W).*
-![results](figs/results.PNG)
 
-## TODO
-- [x] Support DBSCAN-based training
-- [ ] Further accelerate the clustering process
-- [ ] Support training with more datasets
-- [ ] Support pure unsupervised training 
+## Download Trained Models
+*Source-domain pre-trained models and all our P2LR models in the paper can be downloaded from the [link](https://drive.google.com/file/d/1cQqWIu32FLQdtcPeLhyJx2arVNkqa1Mp/view?usp=sharing).*
+![results](figs/results.PNG)
 
 
 ## Citation
 If you find this code useful for your research, please cite our paper
 ```
-@inproceedings{
-  ge2020mutual,
-  title={Mutual Mean-Teaching: Pseudo Label Refinery for Unsupervised Domain Adaptation on Person Re-identification},
-  author={Yixiao Ge and Dapeng Chen and Hongsheng Li},
-  booktitle={International Conference on Learning Representations},
-  year={2020},
-  url={https://openreview.net/forum?id=rJlnOhVYPS}
+@misc{han2021delving,
+      title={Delving into Probabilistic Uncertainty for Unsupervised Domain Adaptive Person Re-Identification}, 
+      author={Jian Han and Yali li and Shengjin Wang},
+      year={2021},
+      eprint={2112.14025},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
 }
 ```
