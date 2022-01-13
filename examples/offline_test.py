@@ -14,13 +14,13 @@ from torch import nn
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
 
-from mmt import datasets
-from mmt import models
-from mmt.evaluators import Evaluator
-from mmt.utils.data import transforms as T
-from mmt.utils.data.preprocessor import Preprocessor
-from mmt.utils.logging import Logger
-from mmt.utils.serialization import load_checkpoint, save_checkpoint, copy_state_dict
+from P2LR import datasets
+from P2LR import models
+from P2LR.evaluators import Evaluator
+from P2LR.utils.data import transforms as T
+from P2LR.utils.data.preprocessor import Preprocessor
+from P2LR.utils.logging import Logger
+from P2LR.utils.serialization import load_checkpoint, save_checkpoint, copy_state_dict
 
 
 def emb_numbers(s):

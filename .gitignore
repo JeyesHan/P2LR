@@ -3,4 +3,5 @@ __pycache__
 *.json
 *.pth
 *.txt
-*.pt
+*.pth
+logs

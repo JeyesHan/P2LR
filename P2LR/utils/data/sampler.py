@@ -79,7 +79,6 @@ class RandomMultipleGallerySampler(Sampler):
             select_cams = No_index(cams, i_cam)
 
             if select_cams:
-
                 if len(select_cams) >= self.num_instances:
                     cam_indexes = np.random.choice(select_cams, size=self.num_instances-1, replace=False)
                 else:
@@ -98,6 +97,5 @@ class RandomMultipleGallerySampler(Sampler):
 
                 for kk in ind_indexes:
                     ret.append(index[kk])
-
 
         return iter(ret)

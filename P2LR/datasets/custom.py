@@ -21,13 +21,13 @@ class CustomData(BaseImageDataset):
         -gallery
             -pid_cid_num.jpg
     """
-    dataset_dir = 'custom'
+    dataset_dir = 'CustomData'
 
     def __init__(self, root, verbose=True, **kwargs):
-        super(Market1501, self).__init__()
+        super(CustomData, self).__init__()
         self.dataset_dir = osp.join(root, self.dataset_dir)
         self.train_dir = osp.join(self.dataset_dir, 'trainval')
-        self.query_dir = osp.join(self.dataset_dir, 'prob')
+        self.query_dir = osp.join(self.dataset_dir, 'probe')
         self.gallery_dir = osp.join(self.dataset_dir, 'gallery')
 
         self._check_before_run()
@@ -61,21 +61,20 @@ class CustomData(BaseImageDataset):
 
     def _process_dir(self, dir_path, relabel=False):
         img_paths = glob.glob(osp.join(dir_path, '*.jpg'))
-        pattern = re.compile(r'([-\d]+)_c(\d)')
 
         pid_container = set()
         for img_path in img_paths:
-            pid, cid = list(map(int, img_path.split('_')[:2]))
+            pid, cid = list(map(int, img_path.split('/')[-1].split('_')[:2]))
             if pid == -1: continue  # junk images are just ignored
             pid_container.add(pid)
         pid2label = {pid: label for label, pid in enumerate(pid_container)}
 
         dataset = []
         for img_path in img_paths:
-            pid, cid = list(map(int, img_path.split('_')[:2]))
+            pid, cid = list(map(int, img_path.split('/')[-1].split('_')[:2]))
             if pid == -1: continue  # junk images are just ignored
             # camid -= 1  # index starts from 0
             if relabel: pid = pid2label[pid]
-            dataset.append((img_path, pid, camid))
+            dataset.append((img_path, pid, cid%4))
 
         return dataset

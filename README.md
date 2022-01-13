@@ -49,7 +49,7 @@ MMT/examples/data
 └── custom
     └── your_custom_dataset
         |── trianval
-        |── query
+        |── probe
         └── gallery
     
 ```

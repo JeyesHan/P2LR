@@ -16,16 +16,16 @@ from torch import nn
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
 
-from mmt import datasets
-from mmt import models
-from mmt.trainers import MMTTrainer
-from mmt.evaluators import Evaluator, extract_features
-from mmt.utils.data import IterLoader
-from mmt.utils.data import transforms as T
-from mmt.utils.data.sampler import RandomMultipleGallerySampler
-from mmt.utils.data.preprocessor import Preprocessor
-from mmt.utils.logging import Logger
-from mmt.utils.serialization import load_checkpoint, save_checkpoint, copy_state_dict
+from P2LR import datasets
+from P2LR import models
+from P2LR.trainers import MMTTrainer
+from P2LR.evaluators import Evaluator, extract_features
+from P2LR.utils.data import IterLoader
+from P2LR.utils.data import transforms as T
+from P2LR.utils.data.sampler import RandomMultipleGallerySampler
+from P2LR.utils.data.preprocessor import Preprocessor
+from P2LR.utils.logging import Logger
+from P2LR.utils.serialization import load_checkpoint, save_checkpoint, copy_state_dict
 
 
 best_mAP = 0
@@ -86,7 +86,7 @@ class ProbUncertain():
         self.logsoftmax = torch.nn.LogSoftmax(dim=1)
         self.kl_loss = torch.nn.KLDivLoss(reduction='none')
     
-    def cal_uncertainty(features, pseudo_labels, classifier):
+    def cal_uncertainty(self, features, pseudo_labels, classifier):
         features, classifier = torch.from_numpy(features), torch.from_numpy(classifier)
         pred_probs =  self.logsoftmax(self.alpha * torch.matmul(features, classifier.t()))
 
@@ -115,13 +115,15 @@ def get_train_loader(dataset, height, width, batch_size, workers,
     ])
     uncertainties = prob_uncertainty.cal_uncertainty(cf, target_label, centers)
     N = len(uncertainties) 
-    beta = np.sort(uncertainties)[int(pt * N)]
+    beta = np.sort(uncertainties)[int(pt * N) - 1]
     Vindicator = [False for _ in range(N)]
     for i in range(N):
         if uncertainties[i] <= beta:
-            Vindicator[i] = True   
-    select_samples_labels = labels[np.where(Vindicator == True)]
-    train_set = [dataset.train[ind] for ind in np.where(Vindicator == True)]
+            Vindicator[i] = True
+    Vindicator = np.array(Vindicator)
+    select_samples_inds = np.where(Vindicator == True)[0]
+    select_samples_labels = target_label[select_samples_inds]
+    train_set = [dataset.train[ind] for ind in select_samples_inds]
 
     # change pseudo labels
     for i in range(len(train_set)):
@@ -143,7 +145,7 @@ def get_train_loader(dataset, height, width, batch_size, workers,
                    batch_size=batch_size, num_workers=workers, sampler=sampler,
                    shuffle=not rmgs_flag, pin_memory=True, drop_last=True), length=iters)
 
-    return train_loader, select_pseudo_samples, select_pseudo_samples_labels
+    return train_loader, select_samples_inds, select_samples_labels
 
 
 def get_test_loader(dataset, height, width, batch_size, workers, testset=None):
@@ -245,8 +247,6 @@ def main_worker(args):
 
     print('\n Clustering into {} classes \n'.format(args.num_clusters))  # num_clusters=500
     if args.fast_kmeans:
-        # centers, target_label = train_kmeans(cf, args.num_clusters, seed=args.seed, max_points_per_centroid=80,
-        #                                                 min_points_per_centroid=3, niter=50, ngpu=1 , redo=5)
         centers, target_label = train_kmeans(cf, args.num_clusters, niter=50, nredo=5, ngpu=1, verbose=True)        
         centers = normalize(centers, axis=1)
         model_1.module.classifier.weight.data.copy_(torch.from_numpy(centers).float().cuda())
@@ -268,7 +268,7 @@ def main_worker(args):
 
     for epoch in range(args.epochs):
         pt = scheduler(epoch, args.epochs-1, start_percentage, h=1.5)
-        print('Current epoch selects {:.4f} unlabeled data'.format(select_percentage))
+        print('Current epoch selects {:.4f} unlabeled data'.format(pt))
         train_loader_target, select_pseudo_samples, select_pseudo_samples_labels = get_train_loader(dataset_target,
                                                             args.height, args.width, args.batch_size, args.workers,
                                                             args.num_instances, iters, centers,target_label, cf, pt)
@@ -387,7 +387,7 @@ if __name__ == '__main__':
     parser.add_argument('--init-1', type=str, default='', metavar='PATH')
     parser.add_argument('--init-2', type=str, default='', metavar='PATH')
     parser.add_argument('--seed', type=int, default=1)
-    parser.add_argument('--print-freq', type=int, default=1)
+    parser.add_argument('--print-freq', type=int, default=10)
     parser.add_argument('--eval-step', type=int, default=1)
     # path
     working_dir = osp.dirname(osp.abspath(__file__))
