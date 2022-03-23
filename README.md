@@ -121,8 +121,8 @@ sh scripts/test.sh msmt17 resnet logs/dukemtmcTOmsmt17/resnet-P2LR-1500/model_be
 
 
 
-## Download Trained Models
-*Source-domain pre-trained models and all our P2LR models in the paper can be downloaded from the [link](https://drive.google.com/file/d/1cQqWIu32FLQdtcPeLhyJx2arVNkqa1Mp/view?usp=sharing).*
+## Reported Results
+*The reported results of this repo on four main-stream UDA Re-ID benchmarks are listed below.*
 ![results](figs/results.PNG)
 
 
