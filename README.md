@@ -91,8 +91,8 @@ sh scripts/test.sh market1501 resnet50 logs/dukemtmcTOmarket1501/resnet-P2LR-500
 **Market-to-Duke (ResNet-50)**
 ```shell
 # pre-training on the source domain
-sh scripts/pretrain.sh market1501 dukemtmc resnet 1
-sh scripts/pretrain.sh market1501 dukemtmc resnet 2
+sh scripts/pretrain.sh market1501 dukemtmc resnet50 1
+sh scripts/pretrain.sh market1501 dukemtmc resnet50 2
 # end-to-end training with P2LR
 sh scripts/train_P2LR_kmeans.sh market1501 dukemtmc resnet50 700 0.2
 # testing the best model
@@ -101,8 +101,8 @@ sh scripts/test.sh dukemtmc resnet logs/market1501TOdukemtmc/resnet-P2LR-700/mod
 **Market-to-MSMT (ResNet-50)**
 ```shell
 # pre-training on the source domain
-sh scripts/pretrain.sh market1501 msmt17 resnet 1
-sh scripts/pretrain.sh market1501 msmt17 resnet 2
+sh scripts/pretrain.sh market1501 msmt17 resnet50 1
+sh scripts/pretrain.sh market1501 msmt17 resnet50 2
 # end-to-end training with P2LR
 sh scripts/train_P2LR_kmeans.sh market1501 msmt17 resnet50 1500 0.3
 # testing the best model
@@ -111,8 +111,8 @@ sh scripts/test.sh msmt17 resnet logs/market1501TOmsmt17/resnet-P2LR-1500/model_
 **Duke-to-MSMT (ResNet-50)**
 ```shell
 # pre-training on the source domain
-sh scripts/pretrain.sh dukemtmc msmt17 resnet 1
-sh scripts/pretrain.sh dukemtmc msmt17 resnet 2
+sh scripts/pretrain.sh dukemtmc msmt17 resnet50 1
+sh scripts/pretrain.sh dukemtmc msmt17 resnet50 2
 # end-to-end training with P2LR
 sh scripts/train_P2LR_kmeans.sh dukemtmc msmt17 resnet50 1500 0.3
 # testing the best model
@@ -125,6 +125,8 @@ sh scripts/test.sh msmt17 resnet logs/dukemtmcTOmsmt17/resnet-P2LR-1500/model_be
 *The reported results of this repo on four main-stream UDA Re-ID benchmarks are listed below.*
 ![results](figs/results.PNG)
 
+## Hint
+the default epoch used in our paper in 100 for four tasks. But we currently find that epoch=60 for D2M achieves similar performance. It saves training time by setting epoch to a lower value. We will test with different epochs as a *TODO* item and update the results in the README.
 
 ## Citation
 If you find this code useful for your research, please cite our paper

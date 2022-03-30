@@ -11,6 +11,9 @@ if [ $# -ne 5 ]
     exit 1
 fi
 
+# Hint: the default epoch used in our paper in 100 for four tasks. But we currently find that epoch=60 for D2M achieves
+# similar performance. It saves training time by setting epoch to a lower value. We will test with different epochs as a
+# TODO item and update the results in the README.
 
 CUDA_VISIBLE_DEVICES=0,1,2,3 \
 python examples/train_P2LR_kmeans.py -dt ${TARGET} -a ${ARCH} -j 16 --num-clusters ${CLUSTER} \
