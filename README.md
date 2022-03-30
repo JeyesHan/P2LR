@@ -9,6 +9,8 @@ The *official* implementation for the [Delving into Probabilistic Uncertainty fo
 ![framework](figs/framework.PNG)
 
 ## What's New
+#### [Mar. 28th, 2022]
++ We make the repo public available.
 
 #### [Dec 21st, 2021]
 + We clean up our code and submit the first commit to github.
